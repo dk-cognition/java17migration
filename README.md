@@ -4,6 +4,42 @@ Tests and solutions for migration problems from java 8 to java 17.
 This is not a general discussion of migration problems but
 only deals with problems in our software.
 
+## Migration Changes Applied
+
+### Build Configuration (`build.xml`)
+
+- Added `release="17"` to `<javac>` task to target Java 17 bytecode
+- Added `includeantruntime="false"` to avoid Ant runtime classpath warnings
+- Fixed compile classpath to include all dependency JARs from `lib/`
+- Added `java9settings` target with conditional `--add-opens` JVM flags for Java 9+
+- Added `--add-opens java.base/java.util=ALL-UNNAMED` JVM args to both `junit` and `java` tasks
+- Added `fork="true"` to `hello` target's `<java>` task (required for JVM args)
+
+### Dependency Updates (`project.properties`)
+
+| Dependency     | Old Version | New Version | Reason                              |
+|----------------|-------------|-------------|-------------------------------------|
+| commons-lang3  | 3.12.0      | 3.14.0      | Latest stable, Java 17 compatible   |
+| ivy            | 2.4.0       | 2.5.2       | Latest stable                       |
+| groovy         | 4.0.5       | 4.0.15      | Bug fixes for Java 17 runtime       |
+| slf4j          | 2.0.3       | 2.0.9       | Latest stable 2.x                   |
+| velocity       | 2.3         | 2.3         | Already Java 17 compatible          |
+| junit          | 4.13.2      | 4.13.2      | Already latest JUnit 4              |
+| hamcrest       | 2.2         | 2.2         | Already latest                      |
+
+### Java Source Code Changes
+
+- Fixed raw generic types (`Class` → `Class<?>`, `Map` → `Map<String, Object>`)
+- Updated Velocity engine configuration from deprecated 1.x property names to 2.x format:
+  - `resource.loader` → `resource.loaders`
+  - `string.resource.loader.class` → `resource.loader.string.class`
+  - `string.resource.loader.repository.static` → `resource.loader.string.repository.static`
+
+### IntelliJ IDEA Config (`java17migration.iml`)
+
+- Updated JUnit reference from 4.12 → 4.13.2
+- Updated hamcrest reference from hamcrest-core 1.3 → hamcrest 2.2
+
 ## Problem areas
 
 ### Deprecated API
@@ -26,9 +62,10 @@ at java.base/java.lang.reflect.Field.setAccessible(Field.java:172)
 at com.infodesire.v20.pojo.Pojos.getFields(Pojos.java:338)
 ```
 
-For unit tests in ant:
+**Solution:** Add `--add-opens java.base/java.util=ALL-UNNAMED` JVM argument. This is implemented
+in the `java9settings` target in `build.xml`, which conditionally applies the flag when Java 9+ is detected:
 
-```
+```xml
     <target name="java9settings">
     
         <condition property="addOpensPropertsPart1" value="--add-opens">
@@ -41,18 +78,6 @@ For unit tests in ant:
         <property name="addOpensPropertsPart2" value="-Dummy2=2" />
     
     </target>
-
-    <target
-        name="junit.run" 
-        depends="java9settings, javac, junit.compile"
-        >
-    
-        <junit fork="true">
-    
-          <jvmarg value="${addOpensPropertsPart1}" />
-          <jvmarg value="${addOpensPropertsPart2}" />
-          
-          ...
 ```
 
 ### Error parsing java version numbers
@@ -68,11 +93,7 @@ Caused by: java.lang.NumberFormatException: multiple points
 	at org.apache.commons.lang.SystemUtils.<clinit>(SystemUtils.java:469)
 ```
 
-Mitigation:
-
-* throw out org.apache.commons.lang.* in favor of org.apache.commons.lang3.*
-
-This causes the need to upgrade velocity.
+**Solution:** Replace `org.apache.commons.lang.*` with `org.apache.commons.lang3.*` (version 3.14.0).
 
 ### New version of velocity
 
@@ -87,6 +108,8 @@ memory.resource.loader.class=com.infodesire.v20.templating.velocity.MemoryResour
 resource.loaders=memory
 resource.loader.memory.class=com.infodesire.v20.templating.velocity.MemoryResourceLoader
 ```
+
+**Solution:** All Velocity property names updated to 2.x format in `Main.java`.
 
 #### Problem with hyphens in variable names:
 
@@ -105,9 +128,7 @@ Was expecting one of:
     "=" ...
 ```
 
-Mitigation:
-
-Set variable in velocity properties:
+**Solution:** Set variable in velocity properties:
 
 ```
 parser.allow_hyphen_in_identifiers=true
@@ -117,9 +138,9 @@ parser.allow_hyphen_in_identifiers=true
 
 Some characters will display incorrectly in rendered text.
 
-Mitigation: in MemoryResourceLoader
+**Solution:** Override `getResourceReader` in MemoryResourceLoader:
 
-```
+```java
   public Reader getResourceReader( String name, String encoding ) throws ResourceNotFoundException {
     try {
       return new InputStreamReader( getResourceStream( name ), "ISO-8859-15" );
