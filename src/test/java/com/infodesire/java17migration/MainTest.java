@@ -15,7 +15,7 @@ public class MainTest {
   public void velocityAndSpecialCharacters() throws ParseException {
 
     Main main = new Main();
-    Map context = new HashMap();
+    Map<String, Object> context = new HashMap<>();
 
     context.put( "who", "World" );
     assertEquals( "Hello World!", main.velocity( "Hello $who!", context ) );

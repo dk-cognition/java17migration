@@ -51,9 +51,12 @@
         <!--
         https://mvnrepository.com/artifact/org.apache.groovy/groovy
 
-        We use groovy only to perform script tasks in the ant build script
+        We use groovy only to perform script tasks in the ant build script.
+        In Groovy 4.x, the ant module was split out from the main groovy jar.
         -->
         <dependency org="org.apache.groovy" name="groovy" rev="${groovy.version}"/>
+        <dependency org="org.apache.groovy" name="groovy-ant" rev="${groovy.version}"/>
+        <dependency org="org.apache.groovy" name="groovy-xml" rev="${groovy.version}"/>
 
     </dependencies>
 
