@@ -53,11 +53,14 @@
         </javac>
     </target>
 
-    <target name="hello" depends="test">
+    <target name="hello" depends="java9settings, test">
         <java
                 classpath="target/classes"
                 classname="com.infodesire.java17migration.Main"
+                fork="true"
         >
+            <jvmarg value="${addOpensPropertsPart1}" />
+            <jvmarg value="${addOpensPropertsPart2}" />
             <classpath>
                 <pathelement location="lib/commons-lang3-${commons-lang3.version}.jar" />
                 <pathelement location="lib/velocity-engine-core-${velocity.version}.jar" />
@@ -82,7 +85,18 @@
     </target>
 
 
-    <target name="test.run" depends="compile, setup.groovy">
+    <target name="java9settings" depends="properties">
+        <condition property="addOpensPropertsPart1" value="--add-opens">
+          <javaversion atleast="9"/>
+        </condition>
+        <property name="addOpensPropertsPart1" value="-Dummy1=1" />
+        <condition property="addOpensPropertsPart2" value="java.base/java.util=ALL-UNNAMED">
+          <javaversion atleast="9"/>
+        </condition>
+        <property name="addOpensPropertsPart2" value="-Dummy2=2" />
+    </target>
+
+    <target name="test.run" depends="java9settings, compile, setup.groovy">
 
         <!-- default fallback: test all -->
         <property name="test.include" value="**/*Test.class" />
@@ -92,6 +106,8 @@
                 fork="true"
                 printsummary="on"
         >
+            <jvmarg value="${addOpensPropertsPart1}" />
+            <jvmarg value="${addOpensPropertsPart2}" />
             <!-- fork:true is necessary, because some tests use ant themselves -->
 
             <classpath>
