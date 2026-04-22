@@ -32,7 +32,7 @@ public class Main {
 
         System.out.println( "OK" );
 
-        Map<String, String> variables = new HashMap<>();
+        Map<String, Object> variables = new HashMap<>();
         variables.put( "who", "World" );
         String merged = new Main().velocity( "Hello ${who}!", variables );
 
