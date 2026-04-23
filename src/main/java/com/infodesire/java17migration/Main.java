@@ -25,14 +25,14 @@ public class Main {
         System.out.println( "--add-opens java.base/java.util=ALL-UNNAMED" );
 
         Map<String, String> map = new TreeMap<>();
-        Class pojoClass = map.getClass();
+        Class<?> pojoClass = map.getClass();
         for( Field field : pojoClass.getDeclaredFields() ) {
             field.setAccessible( true );
         }
 
         System.out.println( "OK" );
 
-        Map<String, String> variables = new HashMap<>();
+        Map<String, Object> variables = new HashMap<>();
         variables.put( "who", "World" );
         String merged = new Main().velocity( "Hello ${who}!", variables );
 
@@ -40,15 +40,15 @@ public class Main {
 
     }
 
-    public String velocity( String templateCode, Map variables ) throws ParseException {
+    public String velocity( String templateCode, Map<String, Object> variables ) throws ParseException {
 
         // source: https://stackoverflow.com/questions/1432468/how-to-use-string-as-velocity-template
 
         // Initialize the engine.
         VelocityEngine engine = new VelocityEngine();
-        engine.setProperty( "resource.loader", "string");
-        engine.addProperty( "string.resource.loader.class", StringResourceLoader.class.getName() );
-        engine.addProperty( "string.resource.loader.repository.static", "false" );
+        engine.setProperty( "resource.loaders", "string");
+        engine.addProperty( "resource.loader.string.class", StringResourceLoader.class.getName() );
+        engine.addProperty( "resource.loader.string.repository.static", "false" );
         engine.init();
 
         // Initialize my template repository. You can replace the "Hello $w" with your String.
