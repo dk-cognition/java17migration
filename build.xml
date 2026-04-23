@@ -21,7 +21,10 @@
 
     <target name="setup.groovy" depends="fetchlibs, properties">
         <path id="groovy.lib.path">
-            <fileset dir="lib" includes="groovy-${groovy.version}.jar"/>
+            <fileset dir="lib">
+                <include name="groovy-${groovy.version}.jar"/>
+                <include name="groovy-ant-${groovy.version}.jar"/>
+            </fileset>
         </path>
         <taskdef name="groovy"
                  classname="org.codehaus.groovy.ant.Groovy"
@@ -39,29 +42,44 @@
         <ivy:retrieve />
     </target>
 
+    <target name="java9settings">
+        <condition property="addOpensPropertsPart1" value="--add-opens">
+          <javaversion atleast="9"/>
+        </condition>
+        <property name="addOpensPropertsPart1" value="-Dummy1=1" />
+        <condition property="addOpensPropertsPart2" value="java.base/java.util=ALL-UNNAMED">
+          <javaversion atleast="9"/>
+        </condition>
+        <property name="addOpensPropertsPart2" value="-Dummy2=2" />
+    </target>
+
     <target name="compile" depends="fetchlibs">
         <mkdir dir="target/classes" />
         <javac
                 srcdir="src/main/java"
                 destdir="target/classes"
+                release="17"
         >
             <src path="src/main/java" />
             <src path="src/test/java" />
             <classpath>
-                <pathelement location="lib/commons-lang3-${commons-lang3.version}.jar" />
+                <fileset dir="lib" />
             </classpath>
         </javac>
     </target>
 
-    <target name="hello" depends="test">
+    <target name="hello" depends="test, java9settings">
         <java
                 classpath="target/classes"
                 classname="com.infodesire.java17migration.Main"
+                fork="true"
         >
             <classpath>
                 <pathelement location="lib/commons-lang3-${commons-lang3.version}.jar" />
                 <pathelement location="lib/velocity-engine-core-${velocity.version}.jar" />
             </classpath>
+            <jvmarg value="${addOpensPropertsPart1}" />
+            <jvmarg value="${addOpensPropertsPart2}" />
         </java>
     </target>
 
@@ -82,7 +100,7 @@
     </target>
 
 
-    <target name="test.run" depends="compile, setup.groovy">
+    <target name="test.run" depends="compile, setup.groovy, java9settings">
 
         <!-- default fallback: test all -->
         <property name="test.include" value="**/*Test.class" />
@@ -93,6 +111,9 @@
                 printsummary="on"
         >
             <!-- fork:true is necessary, because some tests use ant themselves -->
+
+            <jvmarg value="${addOpensPropertsPart1}" />
+            <jvmarg value="${addOpensPropertsPart2}" />
 
             <classpath>
                 <fileset dir="lib" />
